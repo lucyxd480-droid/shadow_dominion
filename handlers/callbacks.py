@@ -1,22 +1,24 @@
-from pyrogram import filters
-from core.manager import manager
+@ app.on_callback_query(filters.regex("^act_"))
+async def act(_, cb):
 
-def register_callbacks(app):
+    session = manager.get(cb.message.chat.id)
 
-    @app.on_callback_query(filters.regex("^act_"))
-    async def act(_, cb):
+    role = session.roles.get(cb.from_user.id)
+    if not role:
+        return
 
-        session = manager.get(cb.message.chat.id)
-        target = int(cb.data.split("_")[1])
+    target = int(cb.data.split("_")[1])
 
-        session.actions[cb.from_user.id] = target
-        await cb.answer("Action locked.")
+    if role.name in ["Overseer", "Shade", "Ravager"]:
+        session.actions["kill"][cb.from_user.id] = target
 
-    @app.on_callback_query(filters.regex("^vote_"))
-    async def vote(_, cb):
+    elif role.name == "Guardian":
+        session.actions["protect"][cb.from_user.id] = target
 
-        session = manager.get(cb.message.chat.id)
-        target = int(cb.data.split("_")[1])
+    elif role.name == "Oracle":
+        session.actions["scan"][cb.from_user.id] = target
 
-        session.votes[target] = session.votes.get(target, 0) + 1
-        await cb.answer("Vote counted.")
+    elif role.name == "Corruptor" and session.mode["infection"]:
+        session.actions["convert"][cb.from_user.id] = target
+
+    await cb.answer("Action locked.")
