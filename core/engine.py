@@ -25,7 +25,6 @@ async def start_game(app, message):
 
     session.phase = "starting"
 
-    # Assign roles
     role_objects = assign_roles(list(session.players.keys()))
 
     session.roles = {}
@@ -42,7 +41,7 @@ async def start_game(app, message):
         else:
             session.pure_team.add(role.user_id)
 
-    # DM role
+    # DM roles
     for uid, role in session.roles.items():
         await app.send_message(uid, f"Your role: {role.name}")
 
@@ -61,7 +60,7 @@ async def start_game(app, message):
 
 
 # ==============================
-# NIGHT PHASE
+# NIGHT PHASE (UPDATED)
 # ==============================
 
 async def night_phase(app, session):
@@ -77,20 +76,45 @@ async def night_phase(app, session):
 
     await app.send_message(session.chat_id, NIGHT)
 
-    # Send role actions
     for uid in session.alive:
 
         role = session.roles[uid]
 
         targets = {
             x: session.players[x]
-            for x in session.alive if x != uid
+            for x in session.alive
+            if x != uid
         }
 
-        if role.faction == "corrupted":
+        # 🗡 Kill roles
+        if role.name in ["Overseer", "Shade", "Ravager"]:
             await app.send_message(
                 uid,
-                "Choose target:",
+                "🗡 Choose target to eliminate:",
+                reply_markup=player_kb(targets, "act")
+            )
+
+        # 🛡 Guardian
+        elif role.name == "Guardian":
+            await app.send_message(
+                uid,
+                "🛡 Choose someone to protect:",
+                reply_markup=player_kb(targets, "act")
+            )
+
+        # 🔮 Oracle
+        elif role.name == "Oracle":
+            await app.send_message(
+                uid,
+                "🔮 Choose someone to scan:",
+                reply_markup=player_kb(targets, "act")
+            )
+
+        # ☠ Corruptor (infection mode)
+        elif role.name == "Corruptor" and session.mode["infection"]:
+            await app.send_message(
+                uid,
+                "☠ Choose someone to convert:",
                 reply_markup=player_kb(targets, "act")
             )
 
@@ -138,7 +162,6 @@ async def vote_phase(app, session):
 
     await asyncio.sleep(VOTE_TIME)
 
-    # Execute highest vote
     if session.votes:
         target = max(session.votes, key=session.votes.get)
 
@@ -184,7 +207,7 @@ async def win_check(app, session):
         session.phase = "idle"
         return
 
-    # Corrupted wins (YOUR STYLE CONDITION)
+    # Corrupted wins
     if corrupted_alive >= pure_alive:
 
         await app.send_message(session.chat_id, "🌑 Corrupted wins.")
@@ -199,5 +222,4 @@ async def win_check(app, session):
         session.phase = "idle"
         return
 
-    # Continue game
     await night_phase(app, session)
