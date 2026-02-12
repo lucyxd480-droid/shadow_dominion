@@ -60,7 +60,7 @@ async def start_game(app, message):
 
 
 # ==============================
-# NIGHT PHASE (UPDATED)
+# NIGHT PHASE
 # ==============================
 
 async def night_phase(app, session):
@@ -86,7 +86,6 @@ async def night_phase(app, session):
             if x != uid
         }
 
-        # 🗡 Kill roles
         if role.name in ["Overseer", "Shade", "Ravager"]:
             await app.send_message(
                 uid,
@@ -94,7 +93,6 @@ async def night_phase(app, session):
                 reply_markup=player_kb(targets, "act")
             )
 
-        # 🛡 Guardian
         elif role.name == "Guardian":
             await app.send_message(
                 uid,
@@ -102,7 +100,6 @@ async def night_phase(app, session):
                 reply_markup=player_kb(targets, "act")
             )
 
-        # 🔮 Oracle
         elif role.name == "Oracle":
             await app.send_message(
                 uid,
@@ -110,7 +107,6 @@ async def night_phase(app, session):
                 reply_markup=player_kb(targets, "act")
             )
 
-        # ☠ Corruptor (infection mode)
         elif role.name == "Corruptor" and session.mode["infection"]:
             await app.send_message(
                 uid,
@@ -177,7 +173,7 @@ async def vote_phase(app, session):
 
 
 # ==============================
-# WIN CHECK
+# WIN CHECK (CONNECTED TO RANKING)
 # ==============================
 
 async def win_check(app, session):
@@ -192,34 +188,52 @@ async def win_check(app, session):
         if session.roles[u].faction == "pure"
     )
 
-    # Pure wins
+    # 🌕 PURE WIN
     if corrupted_alive == 0:
 
         await app.send_message(session.chat_id, "🌕 Pure wins.")
 
         for uid, role in session.roles.items():
             if role.faction == "pure":
-                survive = uid in session.alive
-                add_win(uid, survive)
+                survived = uid in session.alive
+                add_win(uid, survived)
             else:
                 add_loss(uid)
 
-        session.phase = "idle"
+        reset_session(session)
         return
 
-    # Corrupted wins
+
+    # 🌑 CORRUPTED WIN
     if corrupted_alive >= pure_alive:
 
         await app.send_message(session.chat_id, "🌑 Corrupted wins.")
 
         for uid, role in session.roles.items():
             if role.faction == "corrupted":
-                survive = uid in session.alive
-                add_win(uid, survive)
+                survived = uid in session.alive
+                add_win(uid, survived)
             else:
                 add_loss(uid)
 
-        session.phase = "idle"
+        reset_session(session)
         return
 
+
+    # Continue game
     await night_phase(app, session)
+
+
+# ==============================
+# RESET SESSION
+# ==============================
+
+def reset_session(session):
+
+    session.phase = "idle"
+    session.alive.clear()
+    session.players.clear()
+    session.roles.clear()
+    session.corrupted_team.clear()
+    session.pure_team.clear()
+    session.actions.clear()
