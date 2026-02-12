@@ -18,3 +18,9 @@ class GameSession:
             "silent": False,
             "double": False
         }
+        self.actions = {
+            "kill": {},
+            "protect": {},
+            "scan": {},
+            "convert": {}
+        }
