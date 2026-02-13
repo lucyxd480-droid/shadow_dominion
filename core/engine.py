@@ -17,8 +17,8 @@ async def start_game(app, message):
     chat_id = message.chat.id
     session = manager.get(chat_id)
 
-    if session.phase != "idle":
-        return await message.reply("Game already running.")
+    if session.phase not in ["idle", "joining"]:
+    return await message.reply("Game already running.")
 
     if len(session.players) < MIN_PLAYERS:
         return await message.reply("Not enough players.")
